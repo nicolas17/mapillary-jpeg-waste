@@ -15,55 +15,57 @@ STANDALONE_MARKERS = (
 
 class JpegReader:
     def __init__(self, fp):
-        self.fp = fp
+        self.buf = fp.read()
+        self.ptr = 0
 
     def skip_segment(self):
         """
         Returns the segment type and size, but skips over the data.
         Leaves the stream ready to read the next marker, including the 0xff.
         """
-        print("Location: %d" % self.fp.tell())
+        print("Location: %d" % self.ptr)
         has_ff = False
-        b = self.fp.read(1)[0]
-        while b == 0xff:
+        while self.buf[self.ptr] == 0xff:
             print("Saw a ff...")
             has_ff = True
-            b = self.fp.read(1)[0]
+            self.ptr += 1
 
         if not has_ff:
-            raise RuntimeError("wtf? found %02x instead" % b)
+            raise RuntimeError("wtf? found %02x instead" % self.buf[self.ptr])
 
-        marker = b
+        marker = self.buf[self.ptr]
+        self.ptr += 1
 
         if marker in STANDALONE_MARKERS:
             print("This is a standalone %02X marker" % marker)
             return (marker, 0)
         else:
             print("This is non-standalone %02X marker, there should be a length next" % marker)
-            length_bytes = self.fp.read(2)
-            length = struct.unpack('>H', length_bytes)[0]-2
-            if self.fp.seekable:
-                self.fp.seek(length, io.SEEK_CUR)
-            else:
-                self.fp.read(length) # throw away the result
+            length_bytes = self.buf[self.ptr : self.ptr+2]
+            # this length includes the 2 length bytes
+            length = struct.unpack('>H', length_bytes)[0]
+
+            # skip over the segment contents
+            self.ptr += length
             return (marker, length)
 
     def skip_entropy(self):
-        b = self.fp.read(1)[0]
         while True:
-            if b == 0xff:
-                b2 = self.fp.read(1)[0]
+            if self.buf[self.ptr] == 0xff:
+                b2 = self.buf[self.ptr+1]
                 if b2 == 0x00:
                     # this is just an escaped ff in the entropy data
-                    pass
+                    self.ptr += 2
+                    continue
                 elif 0xd0 <= b2 <= 0xd7:
                     # this is a restart marker, skip it
-                    pass
+                    self.ptr += 2
+                    continue
                 else:
-                    # this is an actual marker; rewind
-                    self.fp.seek(-2, io.SEEK_CUR)
+                    # this is an actual marker; quit
                     return
-            b = self.fp.read(1)[0]
+            else:
+                self.ptr += 1
 
     def read_jpeg(self):
         segment = self.skip_segment()
@@ -73,13 +75,13 @@ class JpegReader:
                 break
             elif segment[0] == MARKER_SOS:
                 # skip until the next segment
-                prev_pos = self.fp.tell()
+                prev_pos = self.ptr
                 self.skip_entropy()
-                print("Skipped %d bytes of entropy data" % (self.fp.tell() - prev_pos))
+                print("Skipped %d bytes of entropy data" % (self.ptr - prev_pos))
 
             segment = self.skip_segment()
 
-        return {'size': self.fp.tell()}
+        return {'size': self.ptr}
 
 def read_jpeg(fp):
     reader = JpegReader(fp)
