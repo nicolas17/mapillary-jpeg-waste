@@ -50,11 +50,9 @@ class JpegReader:
 
     def skip_entropy(self):
         b = self.fp.read(1)[0]
-        n = 1
         while True:
             if b == 0xff:
                 b2 = self.fp.read(1)[0]
-                n += 1
                 if b2 == 0x00:
                     # this is just an escaped ff in the entropy data
                     pass
@@ -64,9 +62,8 @@ class JpegReader:
                 else:
                     # this is an actual marker; rewind
                     self.fp.seek(-2, io.SEEK_CUR)
-                    return n
+                    return
             b = self.fp.read(1)[0]
-            n += 1
 
     def read_jpeg(self):
         segment = self.skip_segment()
@@ -76,8 +73,9 @@ class JpegReader:
                 break
             elif segment[0] == MARKER_SOS:
                 # skip until the next segment
-                entropy_length = self.skip_entropy()
-                print("Skipped %d bytes of entropy data" % entropy_length)
+                prev_pos = self.fp.tell()
+                self.skip_entropy()
+                print("Skipped %d bytes of entropy data" % (self.fp.tell() - prev_pos))
 
             segment = self.skip_segment()
 
