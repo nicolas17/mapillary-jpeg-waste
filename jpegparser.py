@@ -68,18 +68,18 @@ class JpegReader:
                 self.ptr += 1
 
     def read_jpeg(self):
-        segment = self.skip_segment()
-        while segment[0] != MARKER_EOI:
-            print("[%02X] length %d" % segment)
-            if segment[0] == MARKER_EOI:
+        marker, length = self.skip_segment()
+        while marker != MARKER_EOI:
+            print("[%02X] length %d" % (marker, length))
+            if marker == MARKER_EOI:
                 break
-            elif segment[0] == MARKER_SOS:
+            elif marker == MARKER_SOS:
                 # skip until the next segment
                 prev_pos = self.ptr
                 self.skip_entropy()
                 print("Skipped %d bytes of entropy data" % (self.ptr - prev_pos))
 
-            segment = self.skip_segment()
+            marker, length = self.skip_segment()
 
         return {'size': self.ptr}
 
