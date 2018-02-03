@@ -14,8 +14,8 @@ STANDALONE_MARKERS = (
 )
 
 class JpegReader:
-    def __init__(self, fp):
-        self.buf = fp.read()
+    def __init__(self, data):
+        self.buf = data
         self.ptr = 0
 
     def skip_segment(self):
@@ -83,6 +83,6 @@ class JpegReader:
 
         return {'size': self.ptr}
 
-def read_jpeg(fp):
-    reader = JpegReader(fp)
+def read_jpeg(data):
+    reader = JpegReader(data)
     return reader.read_jpeg()

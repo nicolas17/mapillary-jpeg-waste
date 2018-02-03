@@ -4,7 +4,6 @@
 # Licensed under the GPLv3 or later version.
 
 import unittest
-import io
 
 import jpegparser
 
@@ -25,7 +24,7 @@ class BasicTest(unittest.TestCase):
         """
         #                 2     +      2        +            16              + 2
         data = bytes(MARKER_SOI + MARKER_APP(0) + b'\x00\x10' + 14*b'a' + MARKER_EOI + b'garbage')
-        result = jpegparser.read_jpeg(io.BytesIO(data))
+        result = jpegparser.read_jpeg(data)
 
         self.assertEqual(result, {'size': 2+2+16+2})
 
@@ -35,7 +34,7 @@ class BasicTest(unittest.TestCase):
         """
         #                 2     +      2        +       2     +       9            + 2
         data = bytes(MARKER_SOI + MARKER_APP(0) + b'\x00\x0b' + b'asd\xff\xd9quux' + MARKER_EOI + b'garbage')
-        result = jpegparser.read_jpeg(io.BytesIO(data))
+        result = jpegparser.read_jpeg(data)
 
         self.assertEqual(result, {'size': 2+2+2+9+2})
 
@@ -51,13 +50,13 @@ class BasicTest(unittest.TestCase):
                      b'entropydata' +       # 11
                      MARKER_EOI +           # 2
                      b'garbage')
-        result = jpegparser.read_jpeg(io.BytesIO(data))
+        result = jpegparser.read_jpeg(data)
 
         self.assertEqual(result, {'size': 2+2+5+2+6+11+2})
 
     def test_real(self):
         with open("/home/nicolas/Mapillary/photos/2017_10_10_16_49_24_691/2017_10_10_16_49_48_117.jpg", "rb") as f:
-            print(jpegparser.read_jpeg(f))
+            print(jpegparser.read_jpeg(f.read()))
 
 
 if __name__ == '__main__':
