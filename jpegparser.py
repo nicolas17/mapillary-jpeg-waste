@@ -51,6 +51,11 @@ class JpegReader:
 
     def skip_entropy(self):
         while True:
+            # Fast skip of non-FF bytes
+            idx = self.buf.find(b'\xff', self.ptr)
+            if idx != -1:
+                self.ptr = idx
+
             if self.buf[self.ptr] == 0xff:
                 b2 = self.buf[self.ptr+1]
                 if b2 == 0x00:
