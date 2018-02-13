@@ -3,6 +3,9 @@
 
 import io
 import struct
+import logging
+
+logger = logging.getLogger(__name__)
 
 MARKER_SOI = 0xd8
 MARKER_EOI = 0xd9
@@ -23,10 +26,10 @@ class JpegReader:
         Returns the segment type and size, but skips over the data.
         Leaves the stream ready to read the next marker, including the 0xff.
         """
-        print("Location: %d" % self.ptr)
+        logger.debug("Location: %d", self.ptr)
         has_ff = False
         while self.buf[self.ptr] == 0xff:
-            print("Saw a ff...")
+            logger.debug("Saw a ff...")
             has_ff = True
             self.ptr += 1
 
@@ -37,10 +40,8 @@ class JpegReader:
         self.ptr += 1
 
         if marker in STANDALONE_MARKERS:
-            print("This is a standalone %02X marker" % marker)
             return (marker, 0)
         else:
-            print("This is non-standalone %02X marker, there should be a length next" % marker)
             length_bytes = self.buf[self.ptr : self.ptr+2]
             # this length includes the 2 length bytes
             length = struct.unpack('>H', length_bytes)[0]
@@ -70,19 +71,23 @@ class JpegReader:
                     # this is an actual marker; quit
                     return
             else:
+                # Is it even possible to get a non-FF here?
+                # Surely the fast-skip would land us on one.
+                # Perhaps on an invalid, truncated file?
+                logger.warning("Non-FF found at %d (corrupted file?)" % self.ptr)
                 self.ptr += 1
 
     def read_jpeg(self):
         marker, length = self.skip_segment()
         while marker != MARKER_EOI:
-            print("[%02X] length %d" % (marker, length))
+            logger.debug("Marker %02X length %d", marker, length)
             if marker == MARKER_EOI:
                 break
             elif marker == MARKER_SOS:
                 # skip until the next segment
                 prev_pos = self.ptr
                 self.skip_entropy()
-                print("Skipped %d bytes of entropy data" % (self.ptr - prev_pos))
+                logger.debug("Skipped %d bytes of entropy data", self.ptr - prev_pos)
 
             marker, length = self.skip_segment()
 
