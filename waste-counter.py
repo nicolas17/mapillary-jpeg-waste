@@ -5,19 +5,28 @@
 
 import sys
 import os
+import argparse
 
 from tqdm import tqdm
 
 import jpegparser
 import util
 
-if len(sys.argv) != 3 or sys.argv[1] != 'dir':
-    # The only option for the first argument is 'dir';
-    # this is to allow for future expansion.
-    print("Usage: %s dir <path>" % sys.argv[0], file=sys.stderr)
-    sys.exit(1)
+def parse_args():
+    arg_parser = argparse.ArgumentParser(description="Tools to work with Mapillary JPEG files")
+    subparsers = arg_parser.add_subparsers(metavar="subcommand", dest="subcommand")
 
-dir_path = sys.argv[2]
+    dir_parser = subparsers.add_parser("dir", help="Show wasted data in a local directory with JPEG files")
+    dir_parser.add_argument("dir", metavar="DIR", help="the directory to scan")
+
+    return arg_parser.parse_args()
+
+args = parse_args()
+
+if args.subcommand != 'dir':
+    raise RuntimeError("???")
+
+dir_path = args.dir
 
 total_data = 0
 total_jpeg = 0
