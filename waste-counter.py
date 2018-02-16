@@ -19,6 +19,9 @@ def parse_args():
     dir_parser = subparsers.add_parser("dir", help="Show wasted data in a local directory with JPEG files")
     dir_parser.add_argument("dir", metavar="DIR", help="the directory to scan")
 
+    dir_parser = subparsers.add_parser("files", help="Show wasted data in the given JPEG files")
+    dir_parser.add_argument("paths", metavar="PATH", nargs='+', help="the files to scan")
+
     return arg_parser.parse_args()
 
 class JpegScanner:
@@ -57,11 +60,11 @@ class JpegScanner:
 
 args = parse_args()
 
-if args.subcommand != 'dir':
-    raise RuntimeError("???")
-
 scanner = JpegScanner()
-scanner.scan_dir(args.dir)
+if args.subcommand == 'dir':
+    scanner.scan_dir(args.dir)
+elif args.subcommand == 'files':
+    scanner.scan_files(args.paths)
 
 print()
 
