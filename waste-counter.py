@@ -7,8 +7,6 @@ import sys
 import os
 import argparse
 
-from tqdm import tqdm
-
 import jpegparser
 import util
 
@@ -29,6 +27,7 @@ class JpegScanner:
         self.total_data = 0
         self.total_jpeg = 0
         self.total_waste = 0
+        self.use_tqdm = True
 
     def scan_dir(self, dir_path):
         it = os.scandir(dir_path)
@@ -40,14 +39,16 @@ class JpegScanner:
         return self.scan_files(paths)
 
     def scan_files(self, paths):
-        paths = tqdm(paths, unit="files")
+        if self.use_tqdm:
+            paths = tqdm(paths, unit="files")
 
         for file_path in paths:
             with open(file_path, "rb") as f:
                 data = f.read()
             self.scan_buf(data)
 
-            paths.set_postfix({'waste': util.human_readable_size(self.total_waste)})
+            if self.use_tqdm:
+                paths.set_postfix({'waste': util.human_readable_size(self.total_waste)})
 
     def scan_buf(self, buf):
         file_size = len(buf)
@@ -61,6 +62,12 @@ class JpegScanner:
 args = parse_args()
 
 scanner = JpegScanner()
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    scanner.use_tqdm = False
+
 if args.subcommand == 'dir':
     scanner.scan_dir(args.dir)
 elif args.subcommand == 'files':
